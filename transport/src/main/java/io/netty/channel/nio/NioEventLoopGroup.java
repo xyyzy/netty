@@ -89,12 +89,20 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
 
     public NioEventLoopGroup(
             int nThreads, Executor executor, final SelectorProvider selectorProvider) {
-        //
+        //参数1：内部线程数量0
+        //参数2：执行器null
+        //参数3：选择器提供器，可以获取到jdk层面的selector实例
+        //参数4：选择器工作策略
         this(nThreads, executor, selectorProvider, DefaultSelectStrategyFactory.INSTANCE);
     }
 
     public NioEventLoopGroup(int nThreads, Executor executor, final SelectorProvider selectorProvider,
                              final SelectStrategyFactory selectStrategyFactory) {
+        //参数1：内部线程数量0
+        //参数2：执行器null
+        //参数3：选择器提供器，可以获取到jdk层面的selector实例
+        //参数4：选择器工作策略
+        //参数5：线程池拒绝策略
         super(nThreads, executor, selectorProvider, selectStrategyFactory, RejectedExecutionHandlers.reject());
     }
 
@@ -165,6 +173,14 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         }
     }
 
+    //newChild 都会返回一个nioEventLoop实例
+    // 参数1：ThreadPerTaskExecutor实例，这个实例里面包含了一个ThreadFactory实例，PreTaskExecutor通过内部线程工厂可以制造出线程。
+    // 并且线程名称为 className + poolId + 线程Id 并且线程实例类型为 FastThreadLocalThread
+
+    //参数1：选择器提供器，可以获取到jdk层面的selector实例 args[0]
+    //参数2：选择器工作策略  args[1]
+    //参数3：线程池拒绝策略  args[2]
+
     @Override
     protected EventLoop newChild(Executor executor, Object... args) throws Exception {
         SelectorProvider selectorProvider = (SelectorProvider) args[0];
@@ -173,6 +189,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         EventLoopTaskQueueFactory taskQueueFactory = null;
         EventLoopTaskQueueFactory tailTaskQueueFactory = null;
 
+        //正常情况下taskQueueFactory都是null
         int argsLength = args.length;
         if (argsLength > 3) {
             taskQueueFactory = (EventLoopTaskQueueFactory) args[3];
@@ -180,6 +197,12 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
         if (argsLength > 4) {
             tailTaskQueueFactory = (EventLoopTaskQueueFactory) args[4];
         }
+        //参数1：nioEventLoopGroup
+        //参数2：executor，ThreadPerTaskExecutor
+        //参数3：选择器 selectorProvider
+        //参数4：选择器工作策略 DefaultSelectStrategy
+        //参数5：线程池拒绝策略
+        //参数6：正常情况下taskQueueFactory都是null
         return new NioEventLoop(this, executor, selectorProvider,
                 selectStrategyFactory.newSelectStrategy(),
                 rejectedExecutionHandler, taskQueueFactory, tailTaskQueueFactory);

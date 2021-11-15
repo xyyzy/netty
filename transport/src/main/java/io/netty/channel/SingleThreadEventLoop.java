@@ -59,9 +59,20 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
+    //参数1：nioEventLoopGroup
+    //参数2：executor，ThreadPerTaskExecutor  来源是group内创建的
+    //参数3：addTaskWakeUP
+    //参数4：newTaskQueue(taskQueueFactory)最终返回一个queue实例，最大长度是Integer最大值 taskQueue
+    //参数5：tailTaskQueue 大部分情况用不到
+    //参数6：拒绝策略
     protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
                                     boolean addTaskWakesUp, Queue<Runnable> taskQueue, Queue<Runnable> tailTaskQueue,
                                     RejectedExecutionHandler rejectedExecutionHandler) {
+        //参数1：nioEventLoopGroup
+        //参数2：executor，ThreadPerTaskExecutor  来源是group内创建的
+        //参数3：addTaskWakeUP
+        //参数4：newTaskQueue(taskQueueFactory)最终返回一个queue实例，最大长度是Integer最大值 taskQueue
+        //参数5：拒绝策略
         super(parent, executor, addTaskWakesUp, taskQueue, rejectedExecutionHandler);
         tailTasks = ObjectUtil.checkNotNull(tailTaskQueue, "tailTaskQueue");
     }

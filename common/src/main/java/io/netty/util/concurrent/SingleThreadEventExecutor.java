@@ -161,6 +161,11 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
     }
 
+    //参数1：nioEventLoopGroup
+    //参数2：executor，ThreadPerTaskExecutor  来源是group内创建的
+    //参数3：addTaskWakeUP
+    //参数4：newTaskQueue(taskQueueFactory)最终返回一个queue实例，最大长度是Integer最大值 taskQueue
+    //参数5：拒绝策略
     protected SingleThreadEventExecutor(EventExecutorGroup parent, Executor executor,
                                         boolean addTaskWakesUp, Queue<Runnable> taskQueue,
                                         RejectedExecutionHandler rejectedHandler) {

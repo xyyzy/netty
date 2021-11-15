@@ -132,13 +132,26 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private int cancelledKeys;
     private boolean needsToSelectAgain;
 
+    //参数1：nioEventLoopGroup
+    //参数2：executor，ThreadPerTaskExecutor
+    //参数3：选择器 selectorProvider
+    //参数4：选择器工作策略 DefaultSelectStrategy
+    //参数5：线程池拒绝策略
+    //参数6：正常情况下taskQueueFactory都是null
     NioEventLoop(NioEventLoopGroup parent, Executor executor, SelectorProvider selectorProvider,
                  SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler,
                  EventLoopTaskQueueFactory taskQueueFactory, EventLoopTaskQueueFactory tailTaskQueueFactory) {
+        //参数1：nioEventLoopGroup
+        //参数2：executor，ThreadPerTaskExecutor  来源是group内创建的
+        //参数3：addTaskWakeUP
+        //参数4：newTaskQueue(taskQueueFactory)最终返回一个queue实例，最大长度是Integer最大值 taskQueue
+        //参数5：tailTaskQueue 大部分情况用不到
+        //参数6：拒绝策略
         super(parent, executor, false, newTaskQueue(taskQueueFactory), newTaskQueue(tailTaskQueueFactory),
                 rejectedExecutionHandler);
         this.provider = ObjectUtil.checkNotNull(selectorProvider, "selectorProvider");
         this.selectStrategy = ObjectUtil.checkNotNull(strategy, "selectStrategy");
+        //下面三行代码创建出的selector实例，也就是说每个NioEventLoop都有一个Selector实例
         final SelectorTuple selectorTuple = openSelector();
         this.selector = selectorTuple.selector;
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
