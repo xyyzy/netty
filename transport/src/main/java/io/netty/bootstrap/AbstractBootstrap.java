@@ -241,9 +241,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
-     * @param
+     * @param 服务端要绑定的端口号
+     *
      */
     public ChannelFuture bind(int inetPort) {
+        // 封装一下
         return bind(new InetSocketAddress(inetPort));
     }
 
@@ -269,6 +271,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return doBind(ObjectUtil.checkNotNull(localAddress, "localAddress"));
     }
 
+    //真正完成bind的方法
     private ChannelFuture doBind(final SocketAddress localAddress) {
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
@@ -308,6 +311,15 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 1.new 一个Channel
+            // 当前分析的是：服务端
+            // channelFactory 就是ReflectiveChanelFactory实例
+            // 其实调用的是 NioServerSocketChannel 的无参构造方法
+            // 1.服务端Channel内部会创建出来PipeLine
+            // 2.PipeLine内部有2个处理器分别是head和tail
+            // 3.配置Channel是非阻塞状态
+            // 4.保存了感兴趣事件是Accept
+            // 5.创建出来NioServerSocketChannel Unsafe对象。类型是NioMessageUnsafe
             channel = channelFactory.newChannel();
             init(channel);
         } catch (Throwable t) {

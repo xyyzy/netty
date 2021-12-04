@@ -51,6 +51,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioServerSocketChannel.class);
 
+    //这里返回的只是Jdk层面的Channel
     private static ServerSocketChannel newSocket(SelectorProvider provider) {
         try {
             /**
@@ -72,6 +73,8 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
      * Create a new instance
      */
     public NioServerSocketChannel() {
+        //newSocket(DEFAULT_SELECTOR_PROVIDER)  这里返回的只是Jdk层面的Channel
+        // Netty 然后包装了这个Channel返回一个netty层面的
         this(newSocket(DEFAULT_SELECTOR_PROVIDER));
     }
 
@@ -86,6 +89,9 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
      * Create a new instance using the given {@link ServerSocketChannel}.
      */
     public NioServerSocketChannel(ServerSocketChannel channel) {
+        //参数一：null
+        //参数二：jdk层面的Channel
+        //参数三：感兴趣事件
         super(null, channel, SelectionKey.OP_ACCEPT);
         config = new NioServerSocketChannelConfig(this, javaChannel().socket());
     }

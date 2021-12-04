@@ -39,6 +39,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
      * @see AbstractNioChannel#AbstractNioChannel(Channel, SelectableChannel, int)
      */
     protected AbstractNioMessageChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
+        //参数一：null
+        //参数二：jdk层面的Channel
+        //参数三：感兴趣事件
         super(parent, ch, readInterestOp);
     }
 
