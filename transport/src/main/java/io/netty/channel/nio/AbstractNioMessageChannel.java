@@ -38,6 +38,9 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
     /**
      * @see AbstractNioChannel#AbstractNioChannel(Channel, SelectableChannel, int)
      */
+    //参数1：null
+    //参数2：jdk的ServerSocketChannel
+    //参数3：客户端链接到服务端的Accept事件。当前服务端Channel最终会注册到Selector【多路复用器】，所以需要这个信息。
     protected AbstractNioMessageChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent, ch, readInterestOp);
     }

@@ -269,7 +269,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return doBind(ObjectUtil.checkNotNull(localAddress, "localAddress"));
     }
 
+    //真正bind的方法！！非常重要！！！
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        //关键方法！！
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -308,6 +310,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 当前分析是：服务端
+            //channelFactory是一开始的 ReflectiveChannelFactory 实例
+            //newChannel()其实调用的是 NioServerSocketChannel 的无参构造
             channel = channelFactory.newChannel();
             init(channel);
         } catch (Throwable t) {
