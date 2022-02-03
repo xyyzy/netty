@@ -132,13 +132,32 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         setChannelOptions(channel, newOptionsArray(), logger);
         setAttributes(channel, newAttributesArray());
 
+        //获取到服务端Pipeline管道对象
         ChannelPipeline p = channel.pipeline();
 
+        //其实是workGroup
         final EventLoopGroup currentChildGroup = childGroup;
+        /**
+         *  .childHandler(new ChannelInitializer<SocketChannel>() {
+         *                  @Override
+         *                  public void initChannel(SocketChannel ch) throws Exception {
+         *                      ChannelPipeline p = ch.pipeline();
+         *                      if (sslCtx != null) {
+         *                          p.addLast(sslCtx.newHandler(ch.alloc()));
+         *                      }
+         *                      //p.addLast(new LoggingHandler(LogLevel.INFO));
+         *                      p.addLast(serverHandler);
+         *                  }
+         *              });
+         */
         final ChannelHandler currentChildHandler = childHandler;
+        // 客户端Socket选项信息
         final Entry<ChannelOption<?>, Object>[] currentChildOptions = newOptionsArray(childOptions);
+        // Netty的Channel都是实现了AttributeMap接口的，可以在启动类内部配置一些自定义数据，这样的话，创建出来的Channel实例就包含了这些数据
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = newAttributesArray(childAttrs);
 
+        // ChannelInitializer 本身不是一个Handler，只是通过适配器实现了Handler接口
+        // 它存在的意义就是为了延迟初始化pipeLine. 当PipeLine上的Channel激活以后，真正的添加handler逻辑才会执行
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
@@ -147,7 +166,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 if (handler != null) {
                     pipeline.addLast(handler);
                 }
-
+                //异步任务 2
                 ch.eventLoop().execute(new Runnable() {
                     @Override
                     public void run() {

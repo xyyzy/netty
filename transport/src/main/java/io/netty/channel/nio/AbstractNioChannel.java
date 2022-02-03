@@ -385,6 +385,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (;;) {
             try {
+                // javaChannel()返回jdk层面的Channel 可能是ServerSocketChannel/SocketChannel
+                // 参数一：多路复用器 jdk层面的实现
+                // 参数二：ops。当前感兴趣的事件，这里给的0.。。后面会看到重写的逻辑
+                // 参数三：att，附件，通过附件参数，可以拿到Netty层面的对象，这里可能是NioServerSocketChannel 或者NioSocketChannel
+
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {

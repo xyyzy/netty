@@ -471,7 +471,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
+            // 防止Channel重复注册
             if (isRegistered()) {
+                // 设置promise结果为失败,回调监听者处理失败逻辑
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
@@ -480,13 +482,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
             }
-
+            // AbstractChannel.this 获取到Channel作用域, 这个Channel就是unsafe的外层对象
+            // AbstractChannel.this--> NioServerSocketChannel对象
+            // 后续Channel上的事件或任务都会依赖当前eventLoop线程去处理
             AbstractChannel.this.eventLoop = eventLoop;
 
+            // 判断当前线程是不是当前eventLoop自己这个线程
+            // 这样可以保证绝对线程安全
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
+                    // 将注册任务，提交到了 eventLoop 工作队列内了..带着promise过去的
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {
@@ -504,6 +511,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        // 这个方法：一定是 当前Channel关联的EventLoop线程执行
+        // 参数：promise，表示注册结果的 外部可以向他注册监听者、、来完成注册后的逻辑
         private void register0(ChannelPromise promise) {
             try {
                 // check if the channel is still open as it could be closed in the mean time when the register
@@ -511,6 +520,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
+
                 boolean firstRegistration = neverRegistered;
                 doRegister();
                 neverRegistered = false;
@@ -518,12 +528,23 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
+                // 会向EventLoop提交异步任务2
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                // 回去回调注册相关的promise上注册那些Listener，比如“主线程”在regFuture上注册的监听者
+                // 回调doBind0方法时，会向eventLoop线程队列添加任务3
                 safeSetSuccess(promise);
+
+
+                // 向当前的Channel的PipeLine 发起注册完成事件，关注的Handler 可以做一些事情
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
+
+
+                //Channel->NioServerSocketChannel
+                // 调用NioServerSocketChannel的isActive() 会判断当前是否已经完成绑定操作，
+                // 但是这时候eventLoop正在执行registor0()操作 所有当前肯定是没有绑定完成
                 if (isActive()) {
                     if (firstRegistration) {
                         pipeline.fireChannelActive();

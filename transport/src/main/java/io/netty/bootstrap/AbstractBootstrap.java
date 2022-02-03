@@ -273,12 +273,16 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     //真正完成bind的方法
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        // regFuture就是注册相关的promise对象  关联的任务是registor0
+        // registor0 这个任务已经被放到当前Channel 相关的EventLoop工作队列了
         final ChannelFuture regFuture = initAndRegister();
+        // NioServerSocketChannel
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
             return regFuture;
         }
 
+        //如果registor0已经被执行完了，regFuture 状态就是done状态
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
@@ -287,6 +291,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
+            // 这里向registor0 任务相关的promise 对象添加一个回调对象。回调对象去处理 registor0 成功或失败的事情
+            // 监听者回调线程 是 eventLoop 线程.. 不是当前主线程
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -304,6 +310,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
                     }
                 }
             });
+            System.out.println("执行成功");
+            // 主线程返回一个与bind操作相关的promise对象
             return promise;
         }
     }
@@ -321,6 +329,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // 4.保存了感兴趣事件是Accept
             // 5.创建出来NioServerSocketChannel Unsafe对象。类型是NioMessageUnsafe
             channel = channelFactory.newChannel();
+            // 这一步最主要的就是给服务端Channel的PipeLine添加了一个CI（ChannelInitializer）
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -332,7 +341,12 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // as the Channel is not registered yet we need to force the usage of the GlobalEventExecutor
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
-
+        /**
+         * config() 返回一个ServerBootstrapConfig(serverBootStrap)
+         * config().group()  返回一个EventLoopGroup group：boosGroup， boosGroup NioEventLoopGroup
+         * register(channel) = NioEventLoopGroup.register()
+         */
+        // regFuture就是注册相关的promise对象！！
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -362,6 +376,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
+        // 异步任务3
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
