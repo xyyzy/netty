@@ -560,6 +560,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
     @Override
     public boolean inEventLoop(Thread thread) {
+        // 判断获取的线程和自己线程是否是同一个
         return thread == this.thread;
     }
 
@@ -940,7 +941,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     // ScheduledExecutorService implementation
 
     private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
-
+    //启动线程
     private void startThread() {
         if (state == ST_NOT_STARTED) {
             if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {

@@ -72,9 +72,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         this.parent = parent;
         //每个Channel 创建一个ID 对象
         id = newId();
-        // 服务端时：NioServerSocketChannel，他的unsafe实例是谁？ NioMessageUnsafe 用于操作一些底层的操作
-
-        //
+        /**
+         * 真正传输数据的通道，跟底层直接相关
+         * 服务端时：NioServerSocketChannel，他的unsafe实例是谁？ NioMessageUnsafe 用于操作一些底层的操作
+         */
         unsafe = newUnsafe();
         // 创建出来当前的Channel内部的 Pipeline管道
         //  创建出来的pipeline 内部有2个默认的处理器， 分别是HeadContext和 TailContext
@@ -488,12 +489,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             AbstractChannel.this.eventLoop = eventLoop;
 
             // 判断当前线程是不是当前eventLoop自己这个线程
-            // 这样可以保证绝对线程安全
+            // 这样可以保证绝对线程安全  因为channel支持unregistor
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
                 try {
-                    // 将注册任务，提交到了 eventLoop 工作队列内了..带着promise过去的
+                    // 将注册任务，提交到了 eventLoop 工作队列内了..带着promise过去的  异步任务1  名称:registor0
                     eventLoop.execute(new Runnable() {
                         @Override
                         public void run() {

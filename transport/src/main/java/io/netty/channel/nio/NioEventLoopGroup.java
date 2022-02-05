@@ -50,6 +50,8 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
      * {@link SelectorProvider} which is returned by {@link SelectorProvider#provider()}.
      */
     public NioEventLoopGroup(int nThreads) {
+        //参数一：内部线程数量
+        //参数二： 执行器null
         this(nThreads, (Executor) null);
     }
 
@@ -70,6 +72,9 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     }
 
     public NioEventLoopGroup(int nThreads, Executor executor) {
+        //参数一：内部线程数量
+        //参数二：执行器null
+        //参数三：选择器提供器，可以获取到jdk层面的selector实例
         this(nThreads, executor, SelectorProvider.provider());
     }
 

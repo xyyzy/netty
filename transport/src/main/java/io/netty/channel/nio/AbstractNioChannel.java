@@ -80,9 +80,6 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     //参数一：null
     //参数二：jdk层面的Channel
     //参数三：感兴趣事件
-
-
-
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
         this.ch = ch;

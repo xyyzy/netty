@@ -95,9 +95,11 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             // 通过线程工厂创建出的线程实例，线程名称为 className + poolId + 线程Id 并且线程实例类型为 FastThreadLocalThread
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
-
+        // 假设平台为8cpu 这里创建长度为16 的eventExecutor数组
         children = new EventExecutor[nThreads];
-
+        /**
+         * 遍历这个NioEventLoopGroup数组，实例每个NioEventLoop
+         */
         for (int i = 0; i < nThreads; i ++) {
             boolean success = false;
             try {
@@ -134,7 +136,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
                 }
             }
         }
-        // 通过ChooserFactory 根据当前children数量构建一个合适Chooser实例
+        // 通过ChooserFactory 根据当前children数量构建一个合适Chooser实例（根据数量是否是2的N次方来生成）
         // 之后外部资源想要或者注册...到nioEventLoop都是通过chooser来分配NioEventLoop的
         chooser = chooserFactory.newChooser(children);
 

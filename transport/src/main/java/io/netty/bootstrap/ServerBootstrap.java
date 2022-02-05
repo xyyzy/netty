@@ -158,6 +158,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
         // ChannelInitializer 本身不是一个Handler，只是通过适配器实现了Handler接口
         // 它存在的意义就是为了延迟初始化pipeLine. 当PipeLine上的Channel激活以后，真正的添加handler逻辑才会执行
+        // 目前PipeLine长这个样子 head---CI---tail
+        // 后面合适的时候CI会做解压缩操作，将内部真正的Handler添加到pipeLine中，并且将自己移除pipeLine
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {
@@ -297,6 +299,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     public final ServerBootstrapConfig config() {
+        //返回一个包装了BootStrap的config。。相当于EchoServer中配置BootStrap信息，都可以通过config获得
         return config;
     }
 }

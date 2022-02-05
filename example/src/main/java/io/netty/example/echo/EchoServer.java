@@ -55,28 +55,36 @@ public final class EchoServer {
         try {
             //服务端启动辅助类
             ServerBootstrap b = new ServerBootstrap();
-            //boosGroup是ServerChannel使用
-            //workerGroup是基于当前Server生产的客户端Channel使用
+            /**
+             * boosGroup是ServerChannel使用
+             *      boosGroup：负责新链接的监听和接受
+             * workerGroup是基于当前Server生产的客户端Channel使用
+             *      workGroup：负责IO传输事件的轮询和分发
+             */
+            //会将boosGroup 保存到 AbstractBootstrap的group属性中
             b.group(bossGroup, workerGroup)
-                //设置服务端Channel类型。内部创建一个反射工厂，反射工厂提供了一个newInstance方法用于创建Channel实例
-             .channel(NioServerSocketChannel.class)
-                //保存一些Server端自定义选项
-             .option(ChannelOption.SO_BACKLOG, 100)
-                //配置用户自定义的Server端pipeline处理器.后续创建出来NioServerChannel实例后，会将用户自定义Handler加到该pipeLine中。
-             .handler(new LoggingHandler(LogLevel.INFO))
-                //配置服务端上链接进来的客户端，客户端Channel内部的PipeLine初始信息。
-             .childHandler(new ChannelInitializer<SocketChannel>() {
-                 @Override
-                 public void initChannel(SocketChannel ch) throws Exception {
-                     ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         p.addLast(sslCtx.newHandler(ch.alloc()));
-                     }
-                     //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(serverHandler);
-                 }
-             });
+                    //设置服务端Channel类型。内部创建一个反射工厂，反射工厂提供了一个newInstance方法用于创建Channel实例
+                    .channel(NioServerSocketChannel.class)
+                    //保存一些Server端自定义选项
+                    .option(ChannelOption.SO_BACKLOG, 100)
+                    //配置用户自定义的Server端pipeline处理器.后续创建出来NioServerChannel实例后，会将用户自定义Handler加到该pipeLine中。
+                    .handler(new LoggingHandler(LogLevel.INFO))
+                    //配置服务端上链接进来的客户端，客户端Channel内部的PipeLine初始信息。
+                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        public void initChannel(SocketChannel ch) throws Exception {
+                            ChannelPipeline p = ch.pipeline();
+                            if (sslCtx != null) {
+                                p.addLast(sslCtx.newHandler(ch.alloc()));
+                            }
+                            //p.addLast(new LoggingHandler(LogLevel.INFO));
+                            //addLast()是将其添加到head的后面而不是加到最后面
+                            //pipeLine中的handler顺序:Head<--->.....<--->tail
+                            p.addLast(serverHandler);
+                        }
+                    });
 
+            // 前面的操作只是保存配置类，在bind()方法中才会初始化
             // Start the server.
             // b.bind(PORT) 方法返回一个与绑定操作相关的promise对象
             //sync操作 会将主线程陷入到“挂起”状态，直到“绑定”操作完成后才会被唤醒

@@ -154,6 +154,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         //下面三行代码创建出的selector实例，也就是说每个NioEventLoop都有一个Selector实例
         final SelectorTuple selectorTuple = openSelector();
         this.selector = selectorTuple.selector;
+        // 未包装的一个Selector
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
     }
 

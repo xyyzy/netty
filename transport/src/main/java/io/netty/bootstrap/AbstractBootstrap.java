@@ -55,7 +55,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     private static final Map.Entry<ChannelOption<?>, Object>[] EMPTY_OPTION_ARRAY = new Map.Entry[0];
     @SuppressWarnings("unchecked")
     private static final Map.Entry<AttributeKey<?>, Object>[] EMPTY_ATTRIBUTE_ARRAY = new Map.Entry[0];
-
+    // ServerBootStrap中传参过来，是BoosBootStrap
     volatile EventLoopGroup group;
     @SuppressWarnings("deprecation")
     private volatile ChannelFactory<? extends C> channelFactory;
@@ -132,7 +132,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * has a no-args constructor, its highly recommend to just use {@link #channel(Class)} to
      * simplify your code.
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
+    @SuppressWarnings({"unchecked", "deprecation"})
     public B channelFactory(io.netty.channel.ChannelFactory<? extends C> channelFactory) {
         return channelFactory((ChannelFactory<C>) channelFactory);
     }
@@ -241,8 +241,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     /**
      * Create a new {@link Channel} and bind it.
-     * @param 服务端要绑定的端口号
      *
+     * @param inetPort 服务端要绑定的端口号
      */
     public ChannelFuture bind(int inetPort) {
         // 封装一下
@@ -276,7 +276,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         // regFuture就是注册相关的promise对象  关联的任务是registor0
         // registor0 这个任务已经被放到当前Channel 相关的EventLoop工作队列了
         final ChannelFuture regFuture = initAndRegister();
-        // NioServerSocketChannel
+        // NioServerSocketChannel 对象
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
             return regFuture;
@@ -322,9 +322,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             // 1.new 一个Channel
             // 当前分析的是：服务端
             // channelFactory 就是ReflectiveChanelFactory实例
-            // 其实调用的是 NioServerSocketChannel 的无参构造方法
+            //  其实调用的是 NioServerSocketChannel 的无参构造方法  具体实现到 NioServerSocketChannel中找
             // 1.服务端Channel内部会创建出来PipeLine
-            // 2.PipeLine内部有2个处理器分别是head和tail
+            // 2.会创建一个流水线管道，PipeLine内部会先创建2个处理器分别是head和tail
             // 3.配置Channel是非阻塞状态
             // 4.保存了感兴趣事件是Accept
             // 5.创建出来NioServerSocketChannel Unsafe对象。类型是NioMessageUnsafe
@@ -344,7 +344,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         /**
          * config() 返回一个ServerBootstrapConfig(serverBootStrap)
          * config().group()  返回一个EventLoopGroup group：boosGroup， boosGroup NioEventLoopGroup
-         * register(channel) = NioEventLoopGroup.register()
+         * register(channel) = NioEventLoopGroup.register() 是 MultithreadEventLoopGroup的方法，因为这个group是一个线程池
+         *      他里面的eventLoop才是SingleThreadEventLoop
          */
         // regFuture就是注册相关的promise对象！！
         ChannelFuture regFuture = config().group().register(channel);
@@ -470,7 +471,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     static void setAttributes(Channel channel, Map.Entry<AttributeKey<?>, Object>[] attrs) {
-        for (Map.Entry<AttributeKey<?>, Object> e: attrs) {
+        for (Map.Entry<AttributeKey<?>, Object> e : attrs) {
             @SuppressWarnings("unchecked")
             AttributeKey<Object> key = (AttributeKey<Object>) e.getKey();
             channel.attr(key).set(e.getValue());
@@ -479,7 +480,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     static void setChannelOptions(
             Channel channel, Map.Entry<ChannelOption<?>, Object>[] options, InternalLogger logger) {
-        for (Map.Entry<ChannelOption<?>, Object> e: options) {
+        for (Map.Entry<ChannelOption<?>, Object> e : options) {
             setChannelOption(channel, e.getKey(), e.getValue(), logger);
         }
     }
@@ -500,8 +501,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder()
-            .append(StringUtil.simpleClassName(this))
-            .append('(').append(config()).append(')');
+                .append(StringUtil.simpleClassName(this))
+                .append('(').append(config()).append(')');
         return buf.toString();
     }
 
