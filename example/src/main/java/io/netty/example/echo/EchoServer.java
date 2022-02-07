@@ -83,13 +83,11 @@ public final class EchoServer {
                             p.addLast(serverHandler);
                         }
                     });
-
             // 前面的操作只是保存配置类，在bind()方法中才会初始化
             // Start the server.
             // b.bind(PORT) 方法返回一个与绑定操作相关的promise对象
             //sync操作 会将主线程陷入到“挂起”状态，直到“绑定”操作完成后才会被唤醒
             ChannelFuture f = b.bind(PORT).sync();
-
             // Wait until the server socket is closed.
             f.channel().closeFuture().sync();
         } finally {

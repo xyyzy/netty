@@ -85,13 +85,12 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     //参数4：选择器提供器，可以获取到jdk层面的selector实例 args[0]
     //参数5：选择器工作策略  args[1]
     //参数6：线程池拒绝策略  args[2]
-    protected MultithreadEventExecutorGroup(int nThreads, Executor executor,
-                                            EventExecutorChooserFactory chooserFactory, Object... args) {
+    protected MultithreadEventExecutorGroup(int nThreads, Executor executor, EventExecutorChooserFactory chooserFactory, Object... args) {
         checkPositive(nThreads, "nThreads");
 
         if (executor == null) {
             // 真正生产出来执行任务的线程的作用
-            // 参数：newDefaultThreadFactory() 构建一个线程工,线程工厂内具有prefix字段，命名规则 className + poolId
+            // 参数：newDefaultThreadFactory() 构建一个线程工厂,线程工厂内具有prefix字段，命名规则 className + poolId
             // 通过线程工厂创建出的线程实例，线程名称为 className + poolId + 线程Id 并且线程实例类型为 FastThreadLocalThread
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
