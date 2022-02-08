@@ -30,10 +30,14 @@ import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.security.AccessController;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Set;
 
@@ -49,6 +53,7 @@ public final class NativeLibraryLoader {
     private static final File WORKDIR;
     private static final boolean DELETE_NATIVE_LIB_AFTER_LOADING;
     private static final boolean TRY_TO_PATCH_SHADED_ID;
+    private static final boolean DETECT_NATIVE_LIBRARY_DUPLICATES;
 
     // Just use a-Z and numbers as valid ID bytes.
     private static final byte[] UNIQUE_ID_BYTES =
@@ -80,6 +85,10 @@ public final class NativeLibraryLoader {
         TRY_TO_PATCH_SHADED_ID = SystemPropertyUtil.getBoolean(
                 "io.netty.native.tryPatchShadedId", true);
         logger.debug("-Dio.netty.native.tryPatchShadedId: {}", TRY_TO_PATCH_SHADED_ID);
+
+        DETECT_NATIVE_LIBRARY_DUPLICATES = SystemPropertyUtil.getBoolean(
+                "io.netty.native.detectNativeLibraryDuplicates", true);
+        logger.debug("-Dio.netty.native.detectNativeLibraryDuplicates: {}", DETECT_NATIVE_LIBRARY_DUPLICATES);
     }
 
     /**
@@ -94,6 +103,7 @@ public final class NativeLibraryLoader {
         for (String name : names) {
             try {
                 load(name, loader);
+                logger.debug("Loaded library with name '{}'", name);
                 return;
             } catch (Throwable t) {
                 suppressed.add(t);
@@ -145,22 +155,13 @@ public final class NativeLibraryLoader {
         InputStream in = null;
         OutputStream out = null;
         File tmpFile = null;
-        URL url;
-        if (loader == null) {
-            url = ClassLoader.getSystemResource(path);
-        } else {
-            url = loader.getResource(path);
-        }
+        URL url = getResource(path, loader);
         try {
             if (url == null) {
                 if (PlatformDependent.isOsx()) {
                     String fileName = path.endsWith(".jnilib") ? NATIVE_RESOURCE_HOME + "lib" + name + ".dynlib" :
                             NATIVE_RESOURCE_HOME + "lib" + name + ".jnilib";
-                    if (loader == null) {
-                        url = ClassLoader.getSystemResource(fileName);
-                    } else {
-                        url = loader.getResource(fileName);
-                    }
+                    url = getResource(fileName, loader);
                     if (url == null) {
                         FileNotFoundException fnf = new FileNotFoundException(fileName);
                         ThrowableUtil.addSuppressedAndClear(fnf, suppressed);
@@ -236,6 +237,80 @@ public final class NativeLibraryLoader {
         }
     }
 
+    private static URL getResource(String path, ClassLoader loader) {
+        final Enumeration<URL> urls;
+        try {
+            if (loader == null) {
+                urls = ClassLoader.getSystemResources(path);
+            } else {
+                urls = loader.getResources(path);
+            }
+        } catch (IOException iox) {
+            throw new RuntimeException("An error occurred while getting the resources for " + path, iox);
+        }
+
+        List<URL> urlsList = Collections.list(urls);
+        int size = urlsList.size();
+        switch (size) {
+            case 0:
+                return null;
+            case 1:
+                return urlsList.get(0);
+            default:
+                if (DETECT_NATIVE_LIBRARY_DUPLICATES) {
+                    try {
+                        MessageDigest md = MessageDigest.getInstance("SHA-256");
+                        // We found more than 1 resource with the same name. Let's check if the content of the file is
+                        // the same as in this case it will not have any bad effect.
+                        URL url = urlsList.get(0);
+                        byte[] digest = digest(md, url);
+                        boolean allSame = true;
+                        if (digest != null) {
+                            for (int i = 1; i < size; i++) {
+                                byte[] digest2 = digest(md, urlsList.get(i));
+                                if (digest2 == null || !Arrays.equals(digest, digest2)) {
+                                    allSame = false;
+                                    break;
+                                }
+                            }
+                        } else {
+                            allSame = false;
+                        }
+                        if (allSame) {
+                            return url;
+                        }
+                    } catch (NoSuchAlgorithmException e) {
+                        logger.debug("Don't support SHA-256, can't check if resources have same content.", e);
+                    }
+
+                    throw new IllegalStateException(
+                            "Multiple resources found for '" + path + "' with different content: " + urlsList);
+                } else {
+                    logger.warn("Multiple resources found for '" + path + "' with different content: " +
+                            urlsList + ". Please fix your dependency graph.");
+                    return urlsList.get(0);
+                }
+        }
+    }
+
+    private static byte[] digest(MessageDigest digest, URL url) {
+        InputStream in = null;
+        try {
+            in = url.openStream();
+            byte[] bytes = new byte[8192];
+            int i;
+            while ((i = in.read(bytes)) != -1) {
+                digest.update(bytes, 0, i);
+            }
+            return digest.digest();
+        } catch (IOException e) {
+            logger.debug("Can't read resource.", e);
+            return null;
+        } finally {
+            closeQuietly(in);
+        }
+    }
+
     static void tryPatchShadedLibraryIdAndSign(File libraryFile, String originalName) {
         String newId = new String(generateUniqueId(originalName.length()), CharsetUtil.UTF_8);
         if (!tryExec("install_name_tool -id " + newId + " " + libraryFile.getAbsolutePath())) {
@@ -288,7 +363,7 @@ public final class NativeLibraryLoader {
         Throwable suppressed = null;
         try {
             try {
-                // Make sure the helper is belong to the target ClassLoader.
+                // Make sure the helper belongs to the target ClassLoader.
                 final Class<?> newHelper = tryToLoadClass(loader, NativeLibraryUtil.class);
                 loadLibraryByHelper(newHelper, name, absolute);
                 logger.debug("Successfully loaded the library {}", name);

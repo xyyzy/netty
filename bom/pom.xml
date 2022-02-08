@@ -25,7 +25,7 @@
 
   <groupId>io.netty</groupId>
   <artifactId>netty-bom</artifactId>
-  <version>4.1.71.Final-SNAPSHOT</version>
+  <version>4.1.74.Final-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>Netty/BOM</name>
@@ -65,9 +65,21 @@
 
   <properties>
     <!-- Keep in sync with ../pom.xml -->
-    <tcnative.version>2.0.44.Final</tcnative.version>
+    <tcnative.version>2.0.48.Final</tcnative.version>
   </properties>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>com.commsen.maven</groupId>
+        <artifactId>bom-helper-maven-plugin</artifactId>
+        <version>0.4.0</version>
+        <goals>
+          <goal>resolve</goal>
+        </goals>
+      </plugin>
+    </plugins>
+  </build>
   <dependencyManagement>
     <dependencies>
       <!-- All release modules -->
@@ -294,7 +306,7 @@
       <!-- Add netty-tcnative* as well as users need to ensure they use the correct version -->
       <dependency>
         <groupId>io.netty</groupId>
-        <artifactId>netty-tcnative</artifactId>
+        <artifactId>netty-tcnative-classes</artifactId>
         <version>${tcnative.version}</version>
       </dependency>
       <dependency>
@@ -307,7 +319,13 @@
         <groupId>io.netty</groupId>
         <artifactId>netty-tcnative</artifactId>
         <version>${tcnative.version}</version>
-        <classifier>linux-aarch_64</classifier>
+        <classifier>linux-x86_64-fedora</classifier>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative</artifactId>
+        <version>${tcnative.version}</version>
+        <classifier>linux-aarch_64-fedora</classifier>
       </dependency>
       <dependency>
         <groupId>io.netty</groupId>

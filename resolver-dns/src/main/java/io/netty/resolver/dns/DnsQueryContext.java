@@ -26,6 +26,7 @@ import io.netty.handler.codec.dns.DnsQuestion;
 import io.netty.handler.codec.dns.DnsRecord;
 import io.netty.handler.codec.dns.DnsResponse;
 import io.netty.handler.codec.dns.DnsSection;
+import io.netty.util.ReferenceCountUtil;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.FutureListener;
 import io.netty.util.concurrent.GenericFutureListener;
@@ -120,24 +121,39 @@ abstract class DnsQueryContext implements FutureListener<AddressedEnvelope<DnsRe
     }
 
     private void sendQuery(final DnsQuery query, final boolean flush, final ChannelPromise writePromise) {
-        if (parent.channelFuture.isDone()) {
+        if (parent.channelReadyPromise.isSuccess()) {
             writeQuery(query, flush, writePromise);
         } else {
-            parent.channelFuture.addListener(new GenericFutureListener<Future<? super Channel>>() {
-                @Override
-                public void operationComplete(Future<? super Channel> future) {
-                    if (future.isSuccess()) {
-                        // If the query is done in a late fashion (as the channel was not ready yet) we always flush
-                        // to ensure we did not race with a previous flush() that was done when the Channel was not
-                        // ready yet.
-                        writeQuery(query, true, writePromise);
-                    } else {
-                        Throwable cause = future.cause();
-                        promise.tryFailure(cause);
-                        writePromise.setFailure(cause);
+            Throwable cause = parent.channelReadyPromise.cause();
+            if (cause != null) {
+                // the promise failed before so we should also fail this query.
+                failQuery(query, cause, writePromise);
+            } else {
+                // The promise is not complete yet, let's delay the query.
+                parent.channelReadyPromise.addListener(new GenericFutureListener<Future<? super Channel>>() {
+                    @Override
+                    public void operationComplete(Future<? super Channel> future) {
+                        if (future.isSuccess()) {
+                            // If the query is done in a late fashion (as the channel was not ready yet) we always flush
+                            // to ensure we did not race with a previous flush() that was done when the Channel was not
+                            // ready yet.
+                            writeQuery(query, true, writePromise);
+                        } else {
+                            Throwable cause = future.cause();
+                            failQuery(query, cause, writePromise);
+                        }
                     }
-                }
-            });
+                });
+            }
+        }
+    }
+
+    private void failQuery(DnsQuery query, Throwable cause, ChannelPromise writePromise) {
+        try {
+            promise.tryFailure(cause);
+            writePromise.setFailure(cause);
+        } finally {
+            ReferenceCountUtil.release(query);
         }
     }
 

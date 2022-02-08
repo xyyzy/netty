@@ -19,7 +19,7 @@
   <parent>
     <groupId>io.netty</groupId>
     <artifactId>netty-parent</artifactId>
-    <version>4.1.71.Final-SNAPSHOT</version>
+    <version>4.1.74.Final-SNAPSHOT</version>
   </parent>
   <artifactId>netty-transport-native-kqueue</artifactId>
 
@@ -35,8 +35,7 @@
         </os>
       </activation>
       <properties>
-        <jni.compiler.args.ldflags>LDFLAGS=-Wl,-weak_library,${unix.common.lib.unpacked.dir}/lib${unix.common.lib.name}.a</jni.compiler.args.ldflags>
-        <skipTests>false</skipTests>
+        <jni.compiler.args.ldflags>LDFLAGS=-Wl,-weak_library,${unix.common.lib.unpacked.dir}/lib${unix.common.lib.name}.a -Wl,-platform_version,macos,10.6,10.6</jni.compiler.args.ldflags>
       </properties>
       <build>
         <plugins>
@@ -111,6 +110,7 @@
                     </manifest>
                     <manifestEntries>
                       <Bundle-NativeCode>META-INF/native/libnetty_transport_native_kqueue_${os.detected.arch}.jnilib; osname=MacOSX; processor=${os.detected.arch}</Bundle-NativeCode>
+                      <Fragment-Host>io.netty.transport-classes-kqueue</Fragment-Host>
                       <Automatic-Module-Name>${javaModuleName}</Automatic-Module-Name>
                     </manifestEntries>
                     <index>true</index>
@@ -143,7 +143,7 @@
         <!-- use aarch_64 as this is also what os.detected.arch will use on an aarch64 system -->
         <jni.classifier>${os.detected.name}-aarch_64</jni.classifier>
         <jni.compiler.args.cflags>CFLAGS=-target arm64-apple-macos11 -O3 -Werror -fno-omit-frame-pointer -Wunused-variable -fvisibility=hidden -I${unix.common.include.unpacked.dir}</jni.compiler.args.cflags>
-        <jni.compiler.args.ldflags>LDFLAGS=-arch arm64 -Wl,-weak_library,${unix.common.lib.unpacked.dir}/lib${unix.common.lib.name}.a</jni.compiler.args.ldflags>
+        <jni.compiler.args.ldflags>LDFLAGS=-arch arm64 -Wl,-weak_library,${unix.common.lib.unpacked.dir}/lib${unix.common.lib.name}.a -Wl,-platform_version,macos,11.0,11.0</jni.compiler.args.ldflags>
         <skipTests>true</skipTests>
       </properties>
       <build>
@@ -188,6 +188,7 @@
                   <configureArgs>
                     <arg>${jni.compiler.args.ldflags}</arg>
                     <arg>${jni.compiler.args.cflags}</arg>
+                    <arg>MACOSX_DEPLOYMENT_TARGET=11.0</arg>
                     <configureArg>--host=aarch64-apple-darwin</configureArg>
                     <configureArg>--libdir=${project.build.directory}/native-build/target/lib</configureArg>
                   </configureArgs>
@@ -216,6 +217,7 @@
                     </manifest>
                     <manifestEntries>
                       <Bundle-NativeCode>META-INF/native/libnetty_transport_native_kqueue_aarch_64.jnilib; osname=MacOSX; processor=aarch_64</Bundle-NativeCode>
+                      <Fragment-Host>io.netty.transport-classes-kqueue</Fragment-Host>
                       <Automatic-Module-Name>${javaModuleName}</Automatic-Module-Name>
                     </manifestEntries>
                     <index>true</index>
@@ -250,9 +252,6 @@
           <name>openbsd</name>
         </os>
       </activation>
-      <properties>
-        <skipTests>false</skipTests>
-      </properties>
       <build>
         <plugins>
           <plugin>
@@ -323,6 +322,7 @@
                     </manifest>
                     <manifestEntries>
                       <Bundle-NativeCode>META-INF/native/libnetty_transport_native_kqueue_${os.detected.arch}.jnilib; osname=OpenBSD; processor=${os.detected.arch}</Bundle-NativeCode>
+                      <Fragment-Host>io.netty.transport-classes-kqueue</Fragment-Host>
                     </manifestEntries>
                     <index>true</index>
                     <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -356,9 +356,6 @@
           <name>freebsd</name>
         </os>
       </activation>
-      <properties>
-        <skipTests>false</skipTests>
-      </properties>
       <build>
         <plugins>
           <plugin>
@@ -429,6 +426,7 @@
                     </manifest>
                     <manifestEntries>
                       <Bundle-NativeCode>META-INF/native/libnetty_transport_native_kqueue_${os.detected.arch}.jnilib; osname=FreeBSD; processor=${os.detected.arch}</Bundle-NativeCode>
+                      <Fragment-Host>io.netty.transport-classes-kqueue</Fragment-Host>
                     </manifestEntries>
                     <index>true</index>
                     <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
@@ -454,6 +452,28 @@
         </dependency>
       </dependencies>
     </profile>
+    <profile>
+      <id>Windows</id>
+      <activation>
+        <os>
+          <family>windows</family>
+        </os>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
+    </profile>
+    <profile>
+      <id>Linux</id>
+      <activation>
+        <os>
+          <family>linux</family>
+        </os>
+      </activation>
+      <properties>
+        <skipTests>true</skipTests>
+      </properties>
+    </profile>
   </profiles>
 
   <properties>
@@ -467,7 +487,6 @@
     <jni.compiler.args.cflags>CFLAGS=-O3 -Werror -fno-omit-frame-pointer -Wunused-variable -fvisibility=hidden -I${unix.common.include.unpacked.dir}</jni.compiler.args.cflags>
     <jni.compiler.args.ldflags>LDFLAGS=-z now -L${unix.common.lib.unpacked.dir} -Wl,--whole-archive -l${unix.common.lib.name} -Wl,--no-whole-archive</jni.compiler.args.ldflags>
     <nativeSourceDirectory>${project.basedir}/src/main/c</nativeSourceDirectory>
-    <skipTests>true</skipTests>
     <japicmp.skip>true</japicmp.skip>
   </properties>
 

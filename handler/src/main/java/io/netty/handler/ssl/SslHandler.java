@@ -59,7 +59,6 @@ import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -681,9 +680,10 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
             }
             pendingUnencryptedWrites = null;
 
-            SSLHandshakeException cause = null;
+            SSLException cause = null;
 
-            // If the handshake is not done yet we should fail the handshake promise and notify the rest of the
+            // If the handshake or SSLEngine closure is not done yet we should fail corresponding promise and
+            // notify the rest of the
             // pipeline.
             if (!handshakePromise.isDone()) {
                 cause = new SSLHandshakeException("SslHandler removed before handshake completed");
@@ -693,7 +693,7 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
             }
             if (!sslClosePromise.isDone()) {
                 if (cause == null) {
-                    cause = new SSLHandshakeException("SslHandler removed before handshake completed");
+                    cause = new SSLException("SslHandler removed before SSLEngine was closed");
                 }
                 notifyClosePromise(cause);
             }
@@ -1756,17 +1756,19 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
 
         void runComplete() {
             EventExecutor executor = ctx.executor();
-            if (executor.inEventLoop()) {
-                resumeOnEventExecutor();
-            } else {
-                // Jump back on the EventExecutor.
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        resumeOnEventExecutor();
-                    }
-                });
-            }
+            // Jump back on the EventExecutor. We do this even if we are already on the EventLoop to guard against
+            // reentrancy issues. Failing to do so could lead to the situation of tryDecode(...) be called and so
+            // channelRead(...) while still in the decode loop. In this case channelRead(...) might release the input
+            // buffer if its empty which would then result in an IllegalReferenceCountException when we try to continue
+            // decoding.
+            //
+            // See https://github.com/netty/netty-tcnative/issues/680
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    resumeOnEventExecutor();
+                }
+            });
         }
 
         @Override

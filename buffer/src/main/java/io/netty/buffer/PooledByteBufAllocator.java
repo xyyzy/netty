@@ -300,8 +300,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
             List<PoolArenaMetric> metrics = new ArrayList<PoolArenaMetric>(heapArenas.length);
             for (int i = 0; i < heapArenas.length; i ++) {
                 PoolArena.HeapArena arena = new PoolArena.HeapArena(this,
-                        pageSize, pageShifts, chunkSize,
-                        directMemoryCacheAlignment);
+                        pageSize, pageShifts, chunkSize);
                 heapArenas[i] = arena;
                 metrics.add(arena);
             }
@@ -481,6 +480,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     }
 
     /**
+     * @deprecated will be removed
      * Returns {@code true} if the calling {@link Thread} has a {@link ThreadLocal} cache for the allocated
      * buffers.
      */
@@ -490,6 +490,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
     }
 
     /**
+     * @deprecated will be removed
      * Free all cached buffers for the calling {@link Thread}.
      */
     @Deprecated
