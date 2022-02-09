@@ -934,7 +934,10 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
     final void callHandlerAdded() throws Exception {
         // We must call setAddComplete before calling handlerAdded. Otherwise if the handlerAdded method generates
         // any pipeline events ctx.handler() will miss them because the state will not allow it.
+        // 将状态设置成Complete 状态，之前的状态的PendingAdd
         if (setAddComplete()) {
+            // handler() 获取Context包装的handler 就是一开始加入的CI
+            // handlerAdded 调用CI的handlerAdded()方法
             handler().handlerAdded(this);
         }
     }

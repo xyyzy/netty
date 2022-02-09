@@ -200,7 +200,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler);
-
+            // 将handler封装成一个Context
             newCtx = newContext(group, filterName(name, handler), handler);
             //newCtx放入到PipeLine中
             addLast0(newCtx);
@@ -1102,7 +1102,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
             // This Channel itself was registered.
             registered = true;
-
+            // 获取任务队列的头结点,可以访问到在init的时候加入到任务队列中的CI任务
             pendingHandlerCallbackHead = this.pendingHandlerCallbackHead;
             // Null out so it can be GC'ed.
             this.pendingHandlerCallbackHead = null;
@@ -1112,6 +1112,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         // holding the lock and so produce a deadlock if handlerAdded(...) will try to add another handler from outside
         // the EventLoop.
         PendingHandlerCallback task = pendingHandlerCallbackHead;
+        // 遍历执行任务
         while (task != null) {
             task.execute();
             task = task.next;
@@ -1120,7 +1121,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     private void callHandlerCallbackLater(AbstractChannelHandlerContext ctx, boolean added) {
         assert !registered;
-
+        // 增加一个PendingHandlerAddedTask任务
         PendingHandlerCallback task = added ? new PendingHandlerAddedTask(ctx) : new PendingHandlerRemovedTask(ctx);
         PendingHandlerCallback pending = pendingHandlerCallbackHead;
         // 入队操作
@@ -1361,6 +1362,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void read(ChannelHandlerContext ctx) {
+            //
             unsafe.beginRead();
         }
 
@@ -1421,6 +1423,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         private void readIfIsAutoRead() {
             if (channel.config().isAutoRead()) {
+                //out操作  找headContext的read()
                 channel.read();
             }
         }

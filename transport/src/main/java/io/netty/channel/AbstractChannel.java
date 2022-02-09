@@ -537,7 +537,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 safeSetSuccess(promise);
 
 
-                // 向当前的Channel的PipeLine 发起注册完成事件，关注的Handler 可以做一些事情
+                // 向当前的Channel的PipeLine 发起注册完成事件，关注的Handler 可以做一些事情  调用HeadContext的channelRegistered（）方法
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
@@ -585,25 +585,34 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "is not bound to a wildcard address; binding to a non-wildcard " +
                         "address (" + localAddress + ") anyway as requested.");
             }
-
+            // 绑定的时候肯定不是active  false
             boolean wasActive = isActive();
             try {
+                //绑定 变成active
                 doBind(localAddress);
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
-
+            //条件一：!wasActive  true
+            //条件二： 因为已经完成绑定所以返回是true
             if (!wasActive && isActive()) {
+                // 在当前Channel#eventLoop的 工作队列提交一个task
+                // 提交一个真正active的任务  异步任务4
+
                 invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        // headContext 的channelActive()方法
+                        // 该任务的主要是将channel上的selector的感兴趣事件设置为read事件
+                        // 当再次发起read事件后 就会修改selector上的感兴趣事件为accept事件
                         pipeline.fireChannelActive();
                     }
                 });
             }
-
+            // promise 表示的是绑定结果  里面会调用一个notifyAll方法 唤醒等待的线程（一开始有一个  ChannelFuture f = b.bind(PORT).sync();）
+            // 之前调用sync()方法就是在promise上调用了wait()方法  这里会将这个promise唤醒
             safeSetSuccess(promise);
         }
 
@@ -878,6 +887,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             assertEventLoop();
 
             try {
+                // 找AbstractNioMessageChannel
                 doBeginRead();
             } catch (final Exception e) {
                 invokeLater(new Runnable() {
@@ -1129,6 +1139,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
     /**
      * Bind the {@link Channel} to the {@link SocketAddress}
      */
+    //NioServerSocketChannel
     protected abstract void doBind(SocketAddress localAddress) throws Exception;
 
     /**
